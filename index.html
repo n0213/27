@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>대한민국 헌터관리국 (HMB)</title>
+    <style>
+        /* --- [설정] 변수 & 다크모드 --- */
+        :root {
+            --bg-main: #121212;
+            --bg-card: #1e1e24;
+            --bg-lighter: #2a2a35;
+            --primary: #2c3e50;
+            --accent: #d4af37; /* Gold */
+            --accent-glow: rgba(212, 175, 55, 0.3);
+            --text-main: #e0e0e0;
+            --text-sub: #a0a0a0;
+            --danger: #d32f2f;
+            --safe: #2ecc71;
+            
+            /* 랭크 컬러 */
+            --rank-ss: #e040fb; --rank-s: #ffd700; --rank-a: #ff5252;
+            --rank-b: #ffab40; --rank-c: #69f0ae;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Pretendard', sans-serif; }
+        body { background-color: var(--bg-main); color: var(--text-main); line-height: 1.6; overflow-x: hidden; }
+        ul { list-style: none; }
+        button { cursor: pointer; border: none; outline: none; }
+        
+        /* 스크롤바 커스텀 */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-main); }
+        ::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+        /* --- [UI] 속보 바 --- */
+        .news-bar {
+            background: #4a0000; color: #fff; font-size: 0.85rem; display: flex;
+            align-items: center; white-space: nowrap; overflow: hidden; height: 35px; border-bottom: 1px solid #ff5252;
+        }
+        .news-label {
+            background: #b71c1c; padding: 0 15px; height: 100%; display: flex;
+            align-items: center; font-weight: 800; z-index: 2; box-shadow: 5px 0 10px rgba(0,0,0,0.5);
+        }
+        .news-marquee {
+            display: inline-block; padding-left: 20px; animation: marquee 30s linear infinite; color: #ffcbcb;
+        }
+        @keyframes marquee { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
+
+        /* --- [UI] 헤더 --- */
+        header {
+            background: rgba(18, 18, 20, 0.95); border-bottom: 1px solid #333;
+            height: 70px; display: flex; justify-content: space-between; align-items: center;
+            padding: 0 5%; position: sticky; top: 0; z-index: 1000; backdrop-filter: blur(10px);
+        }
+        .logo { font-size: 1.5rem; font-weight: 800; color: #fff; cursor: pointer; letter-spacing: -1px; }
+        .logo span { color: var(--accent); margin-right: 5px; }
+
+        .nav-menu { display: flex; gap: 30px; }
+        .nav-item {
+            color: #aaa; font-weight: 600; font-size: 1rem; cursor: pointer; transition: 0.3s;
+            padding: 8px 12px; border-radius: 4px; position: relative;
+        }
+        .nav-item:hover, .nav-item.active { color: var(--accent); }
+        .nav-item.active::after {
+            content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: 2px; background: var(--accent);
+        }
+
+        .mobile-toggle { display: none; font-size: 1.8rem; color: #fff; cursor: pointer; }
+
+        /* --- [PAGE] 공통 --- */
+        .page-section { display: none; padding: 40px 20px; max-width: 1240px; margin: 0 auto; animation: fadeIn 0.4s ease; }
+        .page-section.active { display: block; }
+        .section-header { 
+            border-left: 5px solid var(--accent); padding-left: 20px; margin-bottom: 40px; 
+            background: linear-gradient(90deg, rgba(212, 175, 55, 0.1), transparent); padding-top: 10px; padding-bottom: 10px;
+        }
+        .section-header h2 { font-size: 2rem; color: #fff; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* --- [1. INTRO] 메인 대시보드 --- */
+        #page-intro { width: 100%; max-width: none; padding: 0; }
+        
+        .hero {
+            height: 60vh; 
+            background: linear-gradient(to bottom, rgba(0,0,0,0.3), #121212), 
+                        url('https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=2070') no-repeat center/cover;
+            display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;
+            border-bottom: 1px solid #333; position: relative;
+        }
+        .hero-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle, transparent 20%, #121212 100%);
+        }
+        .hero-content { z-index: 10; padding: 20px; }
+        .hero h1 { font-size: 3.5rem; font-weight: 800; margin-bottom: 20px; text-shadow: 0 0 20px rgba(0,0,0,0.8); }
+        .hero p { font-size: 1.2rem; color: #ccc; margin-bottom: 40px; max-width: 700px; margin-left: auto; margin-right: auto; }
+        
+        .dashboard-widgets {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;
+            max-width: 1200px; margin: -50px auto 50px auto; padding: 0 20px; position: relative; z-index: 20;
+        }
+        .widget-card {
+            background: rgba(30, 30, 36, 0.95); border: 1px solid #444; border-radius: 8px; padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5); backdrop-filter: blur(5px);
+        }
+        .w-title { color: var(--accent); font-weight: bold; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
+        
+        .mana-status { display: flex; align-items: center; gap: 15px; }
+        .mana-icon { font-size: 2.5rem; color: var(--safe); }
+        .mana-value { font-size: 1.5rem; font-weight: bold; color: #fff; }
+        .mana-desc { font-size: 0.8rem; color: #888; }
+
+        .log-list { height: 100px; overflow-y: hidden; position: relative; }
+        .log-item { font-size: 0.85rem; color: #ccc; margin-bottom: 8px; border-bottom: 1px solid #333; padding-bottom: 5px; }
+        .log-time { color: var(--accent); font-family: monospace; margin-right: 8px; }
+
+        .login-dummy { display: flex; gap: 10px; }
+        .login-input { background: #121212; border: 1px solid #333; color: #fff; padding: 10px; flex: 1; border-radius: 4px; }
+        .login-btn { background: var(--primary); color: #fff; padding: 0 20px; border-radius: 4px; font-weight: bold; }
+
+        /* --- [2. HUNTERS] 헌터 리스트 --- */
+        .hunter-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 30px; }
+        .hunter-card {
+            background: var(--bg-card); border-radius: 12px; overflow: hidden; border: 1px solid #333;
+            transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative; group;
+        }
+        .hunter-card:hover { transform: translateY(-10px); border-color: var(--accent); box-shadow: 0 10px 30px var(--accent-glow); }
+        
+        .card-img-area { 
+            height: 250px; position: relative; overflow: hidden; background: #000;
+        }
+        .card-img-area img {
+            width: 100%; height: 100%; object-fit: cover; transition: 0.5s; opacity: 0.9;
+        }
+        .hunter-card:hover .card-img-area img { transform: scale(1.1); opacity: 1; }
+
+        .rank-badge {
+            position: absolute; top: 15px; right: 15px; width: 45px; height: 45px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center; font-weight: 900; color: #000;
+            box-shadow: 0 0 15px rgba(0,0,0,0.8); font-size: 1.1rem; z-index: 2;
+            border: 2px solid #fff;
+        }
+        .rk-ss { background: var(--rank-ss); color: #fff; box-shadow: 0 0 20px var(--rank-ss); }
+        .rk-s { background: var(--rank-s); }
+        .rk-a { background: var(--rank-a); color: #fff; }
+        .rk-b { background: var(--rank-b); }
+        .rk-c { background: var(--rank-c); color: #000; }
+        
+        .file-icon-overlay {
+            position: absolute; bottom: 15px; right: 15px; 
+            background: rgba(0,0,0,0.7); color: #fff; padding: 8px 15px; border-radius: 20px;
+            font-size: 0.9rem; cursor: pointer; border: 1px solid rgba(255,255,255,0.3);
+            backdrop-filter: blur(4px); z-index: 2; transition: 0.2s;
+        }
+        .file-icon-overlay:hover { background: var(--accent); color: #000; border-color: var(--accent); }
+
+        .card-body { padding: 20px; position: relative; }
+        .h-name { font-size: 1.4rem; font-weight: bold; margin-bottom: 5px; color: #fff; }
+        .h-sub { color: var(--accent); font-size: 0.9rem; font-weight: 600; margin-bottom: 10px; display: inline-block; background: rgba(212, 175, 55, 0.1); padding: 2px 8px; border-radius: 4px; }
+        .h-stats { display: flex; gap: 15px; font-size: 0.85rem; color: #888; margin-top: 15px; padding-top: 15px; border-top: 1px solid #333; }
+
+        /* --- [3. INFO & ENCYCLOPEDIA] --- */
+        .info-table { width: 100%; border-collapse: collapse; background: var(--bg-card); border-radius: 10px; overflow: hidden; }
+        .info-table th { background: #25252b; color: var(--accent); padding: 15px; text-align: left; }
+        .info-table td { padding: 15px; border-bottom: 1px solid #333; color: #ccc; }
+        .info-table tr:hover { background: rgba(255,255,255,0.05); }
+
+        .tab-container { display: flex; gap: 10px; margin-bottom: 25px; flex-wrap: wrap; }
+        .tab-btn {
+            padding: 10px 25px; background: var(--bg-card); color: #888; border-radius: 4px;
+            font-weight: bold; transition: 0.3s; border: 1px solid #333;
+        }
+        .tab-btn.active { background: var(--accent); color: #000; border-color: var(--accent); }
+        
+        .encyclo-card {
+            background: var(--bg-card); padding: 30px; border-radius: 10px; border: 1px solid #333;
+            display: grid; grid-template-columns: 1fr 1fr; gap: 40px; min-height: 400px;
+        }
+        .encyclo-col h3 { color: #fff; border-bottom: 2px solid var(--accent); padding-bottom: 10px; margin-bottom: 20px; }
+        .item-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 1rem; color: #ccc; border-bottom: 1px solid #2a2a2a; padding-bottom: 8px;}
+        .diff-tag { padding: 2px 8px; border-radius: 4px; background: #333; font-size: 0.75rem; color: #aaa; }
+
+        /* --- [MODAL] 파일 뷰어 & 썸네일 그리드 --- */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95); z-index: 2000; display: none;
+            justify-content: center; align-items: center;
+        }
+        .modal-window {
+            background: var(--bg-card); width: 95%; max-width: 1200px; height: 90vh;
+            border-radius: 8px; display: flex; flex-direction: column; overflow: hidden; border: 1px solid #444;
+        }
+        .modal-head { padding: 15px 20px; background: #1a1a1a; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333;}
+        .modal-body { flex: 1; padding: 20px; overflow-y: auto; text-align: center; }
+        
+        /* [NEW] 이미지 썸네일 그리드 */
+        .file-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); 
+            gap: 15px; 
+            padding: 10px;
+        }
+        
+        .file-item { 
+            background: #000; border-radius: 6px; cursor: pointer; 
+            position: relative; overflow: hidden; 
+            /* 이미지 비율 1216:832 = 약 1.46:1 */
+            aspect-ratio: 1.46 / 1; 
+            border: 2px solid #333;
+            transition: 0.2s;
+        }
+        
+        .file-item:hover { border-color: var(--accent); transform: scale(1.02); z-index: 10; }
+        
+        .file-item img {
+            width: 100%; height: 100%; object-fit: cover;
+            transition: 0.3s; opacity: 0.8;
+        }
+        .file-item:hover img { opacity: 1; }
+        
+        .file-label {
+            position: absolute; bottom: 0; left: 0; width: 100%;
+            background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
+            color: #fff; padding: 10px 5px 5px 5px; font-size: 0.8rem;
+            text-align: center; font-weight: bold;
+        }
+
+        /* 성인 컨텐츠(19+) 표시용 보더 컬러 */
+        .item-adult { border-color: #5c1818 !important; }
+        .item-adult .file-label { color: #ff8a80; }
+
+        /* 큰 이미지 뷰어 */
+        .viewer-img {
+            max-width: 100%; height: auto; max-height: 75vh;
+            aspect-ratio: 1216/832; object-fit: contain;
+            background: #000; box-shadow: 0 0 30px rgba(0,0,0,0.8); border: 1px solid #333;
+        }
+
+        /* --- 반응형 --- */
+        @media (max-width: 768px) {
+            .mobile-toggle { display: block; }
+            .nav-menu {
+                position: absolute; top: 70px; right: 0; width: 70%; height: calc(100vh - 70px);
+                background: #1a1a1a; flex-direction: column; padding: 30px;
+                gap: 20px; transform: translateX(100%); transition: 0.3s ease-in-out;
+                border-left: 1px solid var(--accent);
+            }
+            .nav-menu.active { transform: translateX(0); }
+            .hero h1 { font-size: 2.2rem; }
+            .file-grid { grid-template-columns: repeat(2, 1fr); }
+            .dashboard-widgets { grid-template-columns: 1fr; margin-top: 0; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="news-bar">
+        <div class="news-label">⚠ BREAKING NEWS</div>
+        <div class="news-marquee">
+            [긴급] 강남역 인근 A급 게이트 파장 불안정, 시민 대피령 발령... &nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;
+            [공지] 헌터관리국, 2036년 상반기 신규 각성자 의무 교육 일정 발표... &nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;
+            [시세] S급 마석 경매가 역대 최고가 갱신 (150억 KRW)... &nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;
+            [날씨] 오늘 서울 전역 마력 농도 '보통', 던전 활동 적합...
+        </div>
+    </div>
+
+    <header>
+        <div class="logo" onclick="goPage('page-intro')"><span>HMB</span> 헌터관리국</div>
+        <div class="mobile-toggle" onclick="toggleMenu()">☰</div>
+        <ul class="nav-menu" id="navMenu">
+            <li class="nav-item active" onclick="goPage('page-intro')">종합 상황실</li>
+            <li class="nav-item" onclick="goPage('page-hunters')">등록 헌터 열람</li>
+            <li class="nav-item" onclick="goPage('page-gates')">게이트 현황</li>
+            <li class="nav-item" onclick="goPage('page-encyclo')">마물/식재료 도감</li>
+        </ul>
+    </header>
+
+    <section id="page-intro" class="page-section active">
+        <div class="hero">
+            <div class="hero-overlay"></div>
+            <div class="hero-content">
+                <h1>국가의 방패, 인류의 창<br><span style="color:var(--accent)">대한민국 헌터관리국</span></h1>
+                <p>
+                    2025년 게이트 출현 이후, 우리는 24시간 깨어있습니다.<br>
+                    안전한 대한민국을 위해 헌터들과 함께 최전선에서 싸웁니다.
+                </p>
+                <button onclick="goPage('page-hunters')" style="padding:15px 40px; background:var(--accent); color:#000; font-weight:bold; font-size:1.1rem; border-radius:4px;">
+                    헌터 데이터베이스 접속 >
+                </button>
+            </div>
+        </div>
+
+        <div class="dashboard-widgets">
+            <div class="widget-card">
+                <div class="w-title"><span>📍 서울 마력 농도</span><span style="font-size:0.8rem">14:00 기준</span></div>
+                <div class="mana-status">
+                    <div class="mana-icon">🛡️</div>
+                    <div>
+                        <div class="mana-value">23ppm (안전)</div>
+                        <div class="mana-desc">게이트 자연 발생 확률 0.05% 미만</div>
+                    </div>
+                </div>
+            </div>
+            <div class="widget-card">
+                <div class="w-title"><span>📡 실시간 작전 로그</span><span style="color:red">● LIVE</span></div>
+                <div class="log-list" id="logList"></div>
+            </div>
+            <div class="widget-card">
+                <div class="w-title"><span>🔒 헌터 전용망</span></div>
+                <div style="font-size:0.9rem; color:#aaa; margin-bottom:15px;">관리국 승인 헌터 및 직원 전용 접속</div>
+                <div class="login-dummy">
+                    <input type="text" class="login-input" placeholder="LICENSE ID">
+                    <button class="login-btn">접속</button>
+                </div>
+            </div>
+        </div>
+        
+        <div style="text-align:center; color:#555; margin-top:80px; padding-bottom:50px; font-size:0.8rem;">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/Emblem_of_South_Korea.svg/200px-Emblem_of_South_Korea.svg.png" style="width:30px; opacity:0.5; margin-bottom:10px;"><br>
+            서울특별시 강남구 헌터로 101 대한민국 헌터관리국 본부 (우)06123<br>
+            본 시스템은 2급 기밀 정보를 포함하고 있으며 무단 열람 시 헌터법 제32조에 의거 처벌받을 수 있습니다.<br>
+            COPYRIGHT © 2035 HUNTER MANAGEMENT BUREAU. ALL RIGHTS RESERVED.
+        </div>
+    </section>
+
+    <section id="page-hunters" class="page-section">
+        <div class="section-header">
+            <h2>등록 헌터 데이터베이스</h2>
+            <p>관리국 정식 등록 헌터 프로필 및 비공개 기록물 (열람권한 확인됨)</p>
+        </div>
+        <div class="hunter-grid" id="hunterGrid"></div>
+    </section>
+
+    <section id="page-gates" class="page-section">
+        <div class="section-header">
+            <h2>전국 게이트 & 시세 현황</h2>
+            <p>국가 전략 상황실 실시간 데이터 연동</p>
+        </div>
+        <div style="display:flex; flex-wrap:wrap; gap:40px;">
+            <div style="flex:1; min-width:300px;">
+                <h3 style="color:#fff; margin-bottom:15px; border-left:3px solid var(--danger); padding-left:10px;">📉 게이트 위험도 분석</h3>
+                <table class="info-table">
+                    <thead><tr><th>등급</th><th>빈도</th><th>소요시간</th><th>예상수익</th></tr></thead>
+                    <tbody id="gateTableBody"></tbody>
+                </table>
+            </div>
+            <div style="flex:1; min-width:300px;">
+                <h3 style="color:#fff; margin-bottom:15px; border-left:3px solid var(--accent); padding-left:10px;">📈 마석 거래소 시세 (KRW)</h3>
+                <table class="info-table">
+                    <thead><tr><th>등급</th><th>현재가</th><th>변동률</th></tr></thead>
+                    <tbody id="marketTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <section id="page-encyclo" class="page-section">
+        <div class="section-header">
+            <h2>마물 & 식재료 도감</h2>
+            <p>게이트 등급별 생태계 정보 및 획득 가능 자원 분석</p>
+        </div>
+        <div class="tab-container" id="rankTabs">
+            <button class="tab-btn active" onclick="renderTab('F')">F급</button>
+            <button class="tab-btn" onclick="renderTab('D')">D급</button>
+            <button class="tab-btn" onclick="renderTab('C')">C급</button>
+            <button class="tab-btn" onclick="renderTab('B')">B급</button>
+            <button class="tab-btn" onclick="renderTab('A')">A급</button>
+            <button class="tab-btn" onclick="renderTab('S')">S급</button>
+        </div>
+        <div class="encyclo-card" id="encycloContent"></div>
+    </section>
+
+    <div class="modal-overlay" id="fileModal">
+        <div class="modal-window">
+            <div class="modal-head">
+                <h3 id="fModalTitle" style="color:#fff; display:flex; align-items:center; gap:10px;">📁 파일 열람</h3>
+                <button onclick="closeModal()" style="font-size:1.5rem; color:#fff; background:none;">&times;</button>
+            </div>
+            <div class="modal-body" id="fModalBody"></div>
+        </div>
+    </div>
+
+    <script>
+        // --- 데이터 ---
+        const hunters = [
+            { name: "강지호", rank: "SS", ability: "거대화", age:29, gender:"남성", imgStart: 81 },
+            { name: "차시린", rank: "SS", ability: "능력 카피", age:20, gender:"여성", imgStart: 141 },
+            { name: "민소라", rank: "SS", ability: "바람의 칼날", age:33, gender:"여성", imgStart: 201 },
+            { name: "류주원", rank: "S", ability: "신체 경화", age:27, gender:"남성", imgStart: 101 },
+            { name: "한미호", rank: "S", ability: "능력 말소", age:22, gender:"여성", imgStart: 121 },
+            { name: "김우진", rank: "A", ability: "골렘 소환", age:32, gender:"남성", imgStart: 1 },
+            { name: "한민준", rank: "A", ability: "불 소환", age:24, gender:"남성", imgStart: 21 },
+            { name: "장서희", rank: "A", ability: "매혹", age:28, gender:"여성", imgStart: 161 },
+            { name: "차서린", rank: "B", ability: "힐링", age:21, gender:"남성", imgStart: 41 },
+            { name: "박문대", rank: "C", ability: "빙결", age:22, gender:"남성", imgStart: 61 },
+            { name: "길하연", rank: "C", ability: "물 생성", age:25, gender:"여성", imgStart: 181 }
+        ];
+
+        const imgTypes = [
+            "통상", "미소", "분노", "눈물", "흥분", "능력사용", "맛없는 식사", "맛있는 식사", "마석 채집", "게이트 내부",
+            "옷입고 키스", "옷벗고 키스", "정상위", "후배위", "기승위", "항문 뚫림", "펠라", "커닐링구스", "자위", "결혼"
+        ];
+
+        const encyclopediaData = {
+            "F": { m: ["슬라임(F)", "고블린(F)"], f: [{n:"동굴이끼",d:"쉬움"}, {n:"독버섯",d:"불가"}, {n:"슬라임젤리",d:"어려움"}] },
+            "D": { m: ["오크(D)", "코볼트(F~D)", "늑대(D)"], f: [{n:"야생허브",d:"보통"}, {n:"오크고기",d:"질김"}, {n:"코볼트알",d:"어려움"}] },
+            "C": { m: ["트롤(C)", "리자드맨(C)", "하피(C)"], f: [{n:"마력버섯",d:"어려움"}, {n:"트롤간",d:"매우어려움"}, {n:"하피알",d:"보통"}] },
+            "B": { m: ["와이번(B)", "미노타우로스", "암흑기사"], f: [{n:"용암고추",d:"매우어려움"}, {n:"빙결과일",d:"매우어려움"}, {n:"미노등심",d:"극도"}] },
+            "A": { m: ["드래곤(A)", "리치(A)", "고위악마"], f: [{n:"드래곤하트",d:"극도"}, {n:"신비과실",d:"극도"}, {n:"마력향신료",d:"극도"}] },
+            "S": { m: ["데몬로드", "타락천사", "고대신"], f: [{n:"신성과실",d:"불가"}, {n:"악마핵",d:"국가귀속"}, {n:"차원향신료",d:"불가"}] }
+        };
+
+        const gates = [
+            {r:"F", f:"일 3-5회", t:"1-2h", p:"15만"}, {r:"D", f:"일 2-3회", t:"3-4h", p:"80만"},
+            {r:"C", f:"주 3-4회", t:"5-7h", p:"300만"}, {r:"B", f:"주 1-2회", t:"10h+", p:"2,000만"},
+            {r:"A", f:"월 1-2회", t:"2일+", p:"2억"}, {r:"S", f:"년 3-5회", t:"1주+", p:"100억+"}
+        ];
+
+        const markets = [
+            {r:"F", p:"1,000", c:"-"}, {r:"D", p:"5,000", c:"▼"}, {r:"C", p:"10,000", c:"▲"},
+            {r:"B", p:"100,000", c:"▲"}, {r:"A", p:"1,000,000", c:"▲▲"}, {r:"S", p:"CALL", c:"-"}
+        ];
+
+        window.onload = function() {
+            renderHunters();
+            renderTables();
+            renderTab('F');
+            startLogSimulator();
+        };
+
+        function goPage(pageId) {
+            document.querySelectorAll('.page-section').forEach(sec => sec.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+            
+            const navs = document.querySelectorAll('.nav-item');
+            if(pageId === 'page-intro') navs[0].classList.add('active');
+            if(pageId === 'page-hunters') navs[1].classList.add('active');
+            if(pageId === 'page-gates') navs[2].classList.add('active');
+            if(pageId === 'page-encyclo') navs[3].classList.add('active');
+
+            document.getElementById('navMenu').classList.remove('active');
+            window.scrollTo(0,0);
+        }
+
+        function toggleMenu() { document.getElementById('navMenu').classList.toggle('active'); }
+
+        function renderHunters() {
+            const grid = document.getElementById('hunterGrid');
+            hunters.forEach(h => {
+                const mainImg = `${h.imgStart}.png`;
+                grid.innerHTML += `
+                    <div class="hunter-card">
+                        <div class="card-img-area">
+                            <img src="${mainImg}" alt="${h.name}" onerror="this.style.display='none'; this.parentElement.style.backgroundColor='#1a1a1a'">
+                            <div class="rank-badge rk-${h.rank.toLowerCase()}">${h.rank}</div>
+                            <div class="file-icon-overlay" onclick="openFileList('${h.name}', ${h.imgStart})">
+                                📁 기록 열람
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="h-name">${h.name}</div>
+                            <div class="h-sub">${h.ability}</div>
+                            <div class="h-stats"><span>${h.gender}</span> | <span>${h.age}세</span></div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function renderTables() {
+            const gBody = document.getElementById('gateTableBody');
+            gates.forEach(g => {
+                gBody.innerHTML += `<tr><td><span style="color:var(--rank-${g.r.toLowerCase()})">${g.r}급</span></td><td>${g.f}</td><td>${g.t}</td><td>${g.p}</td></tr>`;
+            });
+            const mBody = document.getElementById('marketTableBody');
+            markets.forEach(m => {
+                let color = m.c.includes('▲') ? '#ff4444' : (m.c.includes('▼') ? '#40c4ff' : '#888');
+                mBody.innerHTML += `<tr><td><span style="color:var(--rank-${m.r.toLowerCase()})">${m.r}급</span></td><td>₩ ${m.p}</td><td style="color:${color}">${m.c}</td></tr>`;
+            });
+        }
+
+        function renderTab(rank) {
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if(btn.innerText.includes(rank)) btn.classList.add('active');
+            });
+            const data = encyclopediaData[rank];
+            const content = document.getElementById('encycloContent');
+            let mHtml = data.m.map(x => `<div class="item-row"><span>👹 ${x}</span><span style="color:#666">확인됨</span></div>`).join('');
+            let fHtml = data.f.map(x => `<div class="item-row"><span>🍖 ${x.n}</span><span class="diff-tag">${x.d}</span></div>`).join('');
+            content.innerHTML = `<div class="encyclo-col"><h3>⚠️ 출몰 마물</h3><div>${mHtml}</div></div><div class="encyclo-col"><h3>💎 획득 자원 (식재료)</h3><div>${fHtml}</div></div>`;
+        }
+
+        // --- [수정된 부분] 파일 열람 (이모티콘 대신 썸네일 이미지) ---
+        function openFileList(name, startImg) {
+            const modal = document.getElementById('fileModal');
+            document.getElementById('fModalTitle').innerHTML = `📁 ${name} <span style="font-size:0.8rem; color:#888; margin-left:10px;">기록 보관소</span>`;
+            const body = document.getElementById('fModalBody');
+            
+            let html = '<div class="file-grid">';
+            imgTypes.forEach((type, i) => {
+                const imgNum = startImg + i;
+                const fileName = `${imgNum}.png`;
+                const isAdult = i >= 10;
+                // 성인 컨텐츠는 붉은 테두리용 클래스 추가
+                const extraClass = isAdult ? 'item-adult' : '';
+                
+                // 실제 이미지를 표시. 에러나면 회색박스.
+                html += `
+                    <div class="file-item ${extraClass}" onclick="viewImage('${name}', '${type}', ${imgNum})">
+                        <img src="${fileName}" onerror="this.src='https://placehold.co/300x200/222/555?text=No+Image'">
+                        <div class="file-label">${type}</div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            body.innerHTML = html;
+            modal.style.display = 'flex';
+        }
+
+        function viewImage(name, type, imgNum) {
+            const fileName = `${imgNum}.png`;
+            const body = document.getElementById('fModalBody');
+            body.innerHTML = `
+                <div style="width:100%; display:flex; flex-direction:column; align-items:center;">
+                    <div style="width:100%; display:flex; justify-content:space-between; margin-bottom:15px; align-items:center;">
+                        <button onclick="openFileList('${name}', ${imgNum - imgTypes.indexOf(type)})" 
+                            style="background:#333; color:#fff; padding:8px 15px; border-radius:4px; font-weight:bold;">◀ 갤러리 목록</button>
+                        <span style="color:var(--accent); font-weight:bold;">${name} - ${type}</span>
+                    </div>
+                    <img src="${fileName}" class="viewer-img" 
+                        onerror="this.src='https://placehold.co/1216x832/222/FFF?text=Image+File+Not+Found\\n${fileName}'; this.style.border='2px dashed red';">
+                    <p style="margin-top:10px; color:#555; font-size:0.8rem;">File: ${fileName} | 1216x832 px</p>
+                </div>
+            `;
+        }
+
+        function closeModal() { document.getElementById('fileModal').style.display = 'none'; }
+        document.getElementById('fileModal').addEventListener('click', (e) => {
+            if(e.target === document.getElementById('fileModal')) closeModal();
+        });
+
+        function startLogSimulator() {
+            const logs = [
+                "강지호(SS) 헌터, 강남 제3구역 게이트 진입", "관악구 D급 게이트 발생 신고 접수 (119)",
+                "헌터관리국 의료팀, 6층 센터 대기 중", "김우진(A) 헌터, 마석 정산 완료 (1.2억 지급)",
+                "차서린(B) 헌터, 파티원 모집 등록 완료", "서초구 C급 던전 공략 완료, 폐쇄 작업 시작",
+                "류주원(S) 헌터, 관리국장 호출로 본부 도착", "마포구 하피 출몰 지역 시민 통제 중"
+            ];
+            const list = document.getElementById('logList');
+            logs.slice(0, 4).forEach(text => addLog(text));
+            setInterval(() => { addLog(logs[Math.floor(Math.random() * logs.length)]); }, 3000);
+            function addLog(text) {
+                const now = new Date();
+                const time = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+                const div = document.createElement('div');
+                div.className = 'log-item';
+                div.innerHTML = `<span class="log-time">[${time}]</span> ${text}`;
+                list.prepend(div);
+                if(list.children.length > 5) list.lastElementChild.remove();
+            }
+        }
+    </script>
+</body>
+</html>
